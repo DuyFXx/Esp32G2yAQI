@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trạm Quan Trắc Không Khí - Reina</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg-color: #f4f7f6; --card-bg: #ffffff; --text-main: #333333; --accent: #007bff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: var(--accent); margin-bottom: 5px; }
+        .header p { color: #666; font-size: 14px; }
+        
+        /* Chỉnh lưới để nhét vừa 7 thẻ */
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto 30px auto; }
+        
+        .card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; color: #888; font-size: 13px; text-transform: uppercase; }
+        .card .value { font-size: 26px; font-weight: bold; color: var(--text-main); }
+        .card .unit { font-size: 13px; color: #aaa; }
+        
+        /* Phân màu thẻ */
+        .aqi-card { background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%); grid-column: 1 / -1; }
+        @media (min-width: 768px) { .aqi-card { grid-column: span 2; } } /* AQI chiếm 2 ô trên PC */
+        .aqi-card .value { color: #006064; font-size: 32px;}
+        .temp-card .value { color: #ff5722; } 
+        .hum-card .value { color: #03a9f4; } 
+        .pm1-card .value { color: #9c27b0; } 
+        .dust-card .value { color: #e91e63; } 
+        .gas-card .value { color: #4caf50; }
+        .eco2-card .value { color: #795548; } 
+
+        /* Lưới 4 Biểu đồ */
+        .charts-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        @media (max-width: 768px) { .charts-wrapper { grid-template-columns: 1fr; } }
+        .chart-card { background-color: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .status { text-align: center; margin-top: 20px; font-weight: bold; color: #ff9800; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>MÁY ĐO CHẤT LƯỢNG KHÔNG KHÍ ĐỂ BÀN</h1>
+        <p>DEV: RESEARCH INSTITUTE LC | LIVE QUALITY PANEL</p>
+    </div>
+
+    <!-- 7 Thẻ thông số -->
+    <div class="dashboard">
+        <div class="card aqi-card">
+            <h3>Chỉ số AQI</h3>
+            <div class="value" id="val_aqi">--</div>
+            <div class="unit" id="val_aqi_text">Đang tải...</div>
+        </div>
+        <div class="card temp-card">
+            <h3>Nhiệt độ</h3>
+            <div class="value"><span id="val_temp">--</span> <span class="unit">°C</span></div>
+        </div>
+        <div class="card hum-card">
+            <h3>Độ ẩm</h3>
+            <div class="value"><span id="val_hum">--</span> <span class="unit">%</span></div>
+        </div>
+        <div class="card pm1-card">
+            <h3>Bụi PM 1.0</h3>
+            <div class="value"><span id="val_pm1">--</span> <span class="unit">µg/m³</span></div>
+        </div>
+        <div class="card dust-card">
+            <h3>Bụi PM 2.5</h3>
+            <div class="value"><span id="val_pm25">--</span> <span class="unit">µg/m³</span></div>
+        </div>
+        <div class="card gas-card">
+            <h3>Khí TVOC</h3>
+            <div class="value"><span id="val_tvoc">--</span> <span class="unit">µg/L</span></div>
+        </div>
+        <div class="card eco2-card">
+            <h3>Khí eCO2</h3>
+            <div class="value"><span id="val_eco2">--</span> <span class="unit">ppm</span></div>
+        </div>
+    </div>
+
+    <!-- 4 Khung Biểu đồ -->
+    <div class="charts-wrapper">
+        <div class="chart-card">
+            <h3 style="text-align: center; color: #ff5722; margin-top: 0;">Biểu đồ Nhiệt độ (°C)</h3>
+            <canvas id="tempChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3 style="text-align: center; color: #00bcd4; margin-top: 0;">Biểu đồ AQI Tổng</h3>
+            <canvas id="aqiChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3 style="text-align: center; color: #9c27b0; margin-top: 0;">Biểu đồ Bụi PM 1.0</h3>
+            <canvas id="pm1Chart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3 style="text-align: center; color: #e91e63; margin-top: 0;">Biểu đồ Bụi PM 2.5</h3>
+            <canvas id="pm25Chart"></canvas>
+        </div>
+    </div>
+
+    <div class="status" id="connection_status">Đang kết nối tới máy chủ Google Firebase...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        // ========================================================
+        // ĐIỀN DATABASE URL CỦA BẠN VÀO ĐÂY
+        // ========================================================
+        const firebaseConfig = {
+            databaseURL: "https://device-streaming-dc17e3c2-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Lấy dữ liệu từ đường dẫn /AirQuality (Nơi ESP32 đang cập nhật liên tục)
+        const liveRef = ref(db, 'AirQuality');
+
+        // Hàm khởi tạo khung biểu đồ
+        function createChartConfig(label, borderColor, bgColor) {
+            return {
+                type: 'line', 
+                data: { labels: [], datasets: [{ label: label, borderColor: borderColor, backgroundColor: bgColor, data: [], tension: 0.3, fill: true }] },
+                options: { responsive: true, animation: { duration: 500 } } 
+            };
+        }
+
+        // Tạo 4 đối tượng biểu đồ
+        const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), createChartConfig('Nhiệt độ (°C)', '#ff5722', 'rgba(255, 87, 34, 0.2)'));
+        const aqiChart = new Chart(document.getElementById('aqiChart').getContext('2d'), createChartConfig('AQI', '#00bcd4', 'rgba(0, 188, 212, 0.2)'));
+        const pm1Chart = new Chart(document.getElementById('pm1Chart').getContext('2d'), createChartConfig('PM 1.0 (µg/m³)', '#9c27b0', 'rgba(156, 39, 176, 0.2)'));
+        const pm25Chart = new Chart(document.getElementById('pm25Chart').getContext('2d'), createChartConfig('PM 2.5 (µg/m³)', '#e91e63', 'rgba(233, 30, 99, 0.2)'));
+
+        const MAX_DATA_POINTS = 20; // Số lượng điểm hiển thị tối đa trên biểu đồ trước khi trượt
+
+        // LẮNG NGHE FIREBASE
+        onValue(liveRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('connection_status').innerText = "✅ Thiết bị đã được kết nối và đồng bộ theo thời gian thực";
+                document.getElementById('connection_status').style.color = "green";
+
+                // 1. CẬP NHẬT 7 THẺ SỐ
+                document.getElementById('val_temp').innerText = data.NhietDo.toFixed(1);
+                document.getElementById('val_hum').innerText = data.DoAm.toFixed(1);
+                document.getElementById('val_pm1').innerText = data.PM1_0.toFixed(1);
+                document.getElementById('val_pm25').innerText = data.PM2_5.toFixed(1);
+                document.getElementById('val_tvoc').innerText = data.TVOC;
+                document.getElementById('val_eco2').innerText = data.eCO2; 
+                document.getElementById('val_aqi').innerText = data.AQI;
+
+                let aqiText = ""; let aqiColor = "";
+                if(data.AQI <= 50) { aqiText = "TỐT"; aqiColor = "#4caf50"; }
+                else if(data.AQI <= 100) { aqiText = "BÌNH THƯỜNG"; aqiColor = "#ffeb3b"; }
+                else if(data.AQI <= 150) { aqiText = "KÉM"; aqiColor = "#ff9800"; }
+                else if(data.AQI <= 200) { aqiText = "XẤU"; aqiColor = "#f44336"; }
+                else { aqiText = "ĐỘC HẠI"; aqiColor = "#9c27b0"; }
+                
+                document.getElementById('val_aqi_text').innerText = "=> " + aqiText;
+                document.querySelector('.aqi-card').style.borderBottom = "5px solid " + aqiColor;
+
+                // 2. CẬP NHẬT 4 BIỂU ĐỒ (Dạng trượt)
+                const now = new Date();
+                const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                                   now.getMinutes().toString().padStart(2, '0') + ':' + 
+                                   now.getSeconds().toString().padStart(2, '0');
+
+                // Hàm hỗ trợ đẩy data vào biểu đồ
+                function updateLiveChart(chart, newData) {
+                    chart.data.labels.push(timeString);
+                    chart.data.datasets[0].data.push(newData);
+                    // Nếu quá số điểm tối đa thì xóa điểm đầu tiên (Trượt)
+                    if (chart.data.labels.length > MAX_DATA_POINTS) {
+                        chart.data.labels.shift();
+                        chart.data.datasets[0].data.shift();
+                    }
+                    chart.update();
+                }
+
+                updateLiveChart(tempChart, data.NhietDo);
+                updateLiveChart(aqiChart, data.AQI);
+                updateLiveChart(pm1Chart, data.PM1_0);
+                updateLiveChart(pm25Chart, data.PM2_5);
+
+            } else {
+                document.getElementById('connection_status').innerText = "⚠ KHÔNG TÌM THẤY THIẾT BỊ!";
+                document.getElementById('connection_status').style.color = "red";
+            }
+        }, (error) => {
+            document.getElementById('connection_status').innerText = "❌ Lỗi kết nối: " + error.message;
+            document.getElementById('connection_status').style.color = "red";
+        });
+    </script>
+</body>
+</html>
