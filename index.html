@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nà ná na na anh Phùng Thanh Độ</title>
+    <title>Trang quản lý  | Máy theo dõi chất lượng không khí để bàn</title>
+	<link rel="icon" href="LOGOWEB.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg-color: #f4f7f6; --card-bg: #ffffff; --text-main: #333333; --accent: #007bff; }
@@ -12,7 +13,6 @@
         .header h1 { color: var(--accent); margin-bottom: 5px; }
         .header p { color: #666; font-size: 14px; }
         
-        /* Chỉnh lưới để nhét vừa 7 thẻ */
         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto 30px auto; }
         
         .card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
@@ -20,7 +20,6 @@
         .card .value { font-size: 26px; font-weight: bold; color: var(--text-main); }
         .card .unit { font-size: 13px; color: #aaa; }
         
-        /* Phân màu thẻ */
         .aqi-card { background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%); grid-column: 1 / -1; }
         @media (min-width: 768px) { .aqi-card { grid-column: span 2; } } /* AQI chiếm 2 ô trên PC */
         .aqi-card .value { color: #006064; font-size: 32px;}
@@ -31,7 +30,6 @@
         .gas-card .value { color: #4caf50; }
         .eco2-card .value { color: #795548; } 
 
-        /* Lưới 4 Biểu đồ */
         .charts-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
         @media (max-width: 768px) { .charts-wrapper { grid-template-columns: 1fr; } }
         .chart-card { background-color: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -45,7 +43,6 @@
         <p>DEV: RESEARCH INSTITUTE LC | LIVE QUALITY PANEL</p>
     </div>
 
-    <!-- 7 Thẻ thông số -->
     <div class="dashboard">
         <div class="card aqi-card">
             <h3>Chỉ số AQI</h3>
@@ -78,7 +75,6 @@
         </div>
     </div>
 
-    <!-- 4 Khung Biểu đồ -->
     <div class="charts-wrapper">
         <div class="chart-card">
             <h3 style="text-align: center; color: #ff5722; margin-top: 0;">Biểu đồ Nhiệt độ (°C)</h3>
@@ -103,21 +99,13 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-        // ========================================================
-        // ĐIỀN DATABASE URL CỦA BẠN VÀO ĐÂY
-        // ========================================================
         const firebaseConfig = {
             databaseURL: "https://device-streaming-dc17e3c2-default-rtdb.asia-southeast1.firebasedatabase.app/" 
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-
-        // Lấy dữ liệu từ đường dẫn /AirQuality (Nơi ESP32 đang cập nhật liên tục)
         const liveRef = ref(db, 'AirQuality');
-
-        // Hàm khởi tạo khung biểu đồ
         function createChartConfig(label, borderColor, bgColor) {
             return {
                 type: 'line', 
@@ -126,22 +114,17 @@
             };
         }
 
-        // Tạo 4 đối tượng biểu đồ
         const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), createChartConfig('Nhiệt độ (°C)', '#ff5722', 'rgba(255, 87, 34, 0.2)'));
         const aqiChart = new Chart(document.getElementById('aqiChart').getContext('2d'), createChartConfig('AQI', '#00bcd4', 'rgba(0, 188, 212, 0.2)'));
         const pm1Chart = new Chart(document.getElementById('pm1Chart').getContext('2d'), createChartConfig('PM 1.0 (µg/m³)', '#9c27b0', 'rgba(156, 39, 176, 0.2)'));
         const pm25Chart = new Chart(document.getElementById('pm25Chart').getContext('2d'), createChartConfig('PM 2.5 (µg/m³)', '#e91e63', 'rgba(233, 30, 99, 0.2)'));
 
-        const MAX_DATA_POINTS = 20; // Số lượng điểm hiển thị tối đa trên biểu đồ trước khi trượt
-
-        // LẮNG NGHE FIREBASE
+        const MAX_DATA_POINTS = 20;
         onValue(liveRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                document.getElementById('connection_status').innerText = "✅ Thiết bị đã được kết nối và đồng bộ theo thời gian thực";
+                document.getElementById('connection_status').innerText = "Thiết bị đã được kết nối và đồng bộ theo thời gian thực";
                 document.getElementById('connection_status').style.color = "green";
-
-                // 1. CẬP NHẬT 7 THẺ SỐ
                 document.getElementById('val_temp').innerText = data.NhietDo.toFixed(1);
                 document.getElementById('val_hum').innerText = data.DoAm.toFixed(1);
                 document.getElementById('val_pm1').innerText = data.PM1_0.toFixed(1);
@@ -159,18 +142,14 @@
                 
                 document.getElementById('val_aqi_text').innerText = "=> " + aqiText;
                 document.querySelector('.aqi-card').style.borderBottom = "5px solid " + aqiColor;
-
-                // 2. CẬP NHẬT 4 BIỂU ĐỒ (Dạng trượt)
                 const now = new Date();
                 const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
                                    now.getMinutes().toString().padStart(2, '0') + ':' + 
                                    now.getSeconds().toString().padStart(2, '0');
 
-                // Hàm hỗ trợ đẩy data vào biểu đồ
                 function updateLiveChart(chart, newData) {
                     chart.data.labels.push(timeString);
                     chart.data.datasets[0].data.push(newData);
-                    // Nếu quá số điểm tối đa thì xóa điểm đầu tiên (Trượt)
                     if (chart.data.labels.length > MAX_DATA_POINTS) {
                         chart.data.labels.shift();
                         chart.data.datasets[0].data.shift();
@@ -184,11 +163,11 @@
                 updateLiveChart(pm25Chart, data.PM2_5);
 
             } else {
-                document.getElementById('connection_status').innerText = "⚠ KHÔNG TÌM THẤY THIẾT BỊ!";
+                document.getElementById('connection_status').innerText = "KHÔNG TÌM THẤY THIẾT BỊ!";
                 document.getElementById('connection_status').style.color = "red";
             }
         }, (error) => {
-            document.getElementById('connection_status').innerText = "❌ Lỗi kết nối: " + error.message;
+            document.getElementById('connection_status').innerText = "Lỗi kết nối: " + error.message;
             document.getElementById('connection_status').style.color = "red";
         });
     </script>
