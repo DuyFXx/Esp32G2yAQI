@@ -176,7 +176,7 @@
                 else if(data.AQI <= 200) { aqiText = "XẤU"; aqiColor = "#f44336"; }
                 else { aqiText = "ĐỘC HẠI"; aqiColor = "#9c27b0"; }
                 
-                document.getElementById('val_aqi_text').innerText = "=> " + aqiText;
+                document.getElementById('val_aqi_text').innerText = "" + aqiText;
                 document.querySelector('.aqi-card').style.borderBottom = "5px solid " + aqiColor;
                 
                 const now = new Date();
