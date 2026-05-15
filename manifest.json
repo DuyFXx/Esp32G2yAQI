@@ -1,5 +1,5 @@
 {
-  "name": "Máy Đo Không Khí",
+  "name": "Máy theo dõi chất lượng không khí",
   "short_name": "Air Monitor",
   "start_url": "./index.html",
   "display": "standalone",
