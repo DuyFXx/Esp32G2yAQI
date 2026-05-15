@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang quản lý  | Máy theo dõi chất lượng không khí để bàn</title>
-	<link rel="icon" href="LOGOWEB.png">
+    <title>Trang quản lý | Máy theo dõi chất lượng không khí để bàn</title>
+    <link rel="icon" href="LOGOWEB.png">
+    
+    <!-- THÊM DÒNG NÀY ĐỂ KẾT NỐI VỚI FILE MANIFEST -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg-color: #f4f7f6; --card-bg: #ffffff; --text-main: #333333; --accent: #007bff; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
+        
+        /* Tinh chỉnh thu nhỏ (Scale) giao diện trên màn hình máy tính lớn */
+        @media (min-width: 1024px) {
+            body { 
+                zoom: 0.85; /* Thu nhỏ giao diện còn 85% */
+            }
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
         .header h1 { color: var(--accent); margin-bottom: 5px; }
         .header p { color: #666; font-size: 14px; }
         
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto 30px auto; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto 20px auto; }
         
         .card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
         .card h3 { margin: 0 0 10px 0; color: #888; font-size: 13px; text-transform: uppercase; }
@@ -21,7 +34,7 @@
         .card .unit { font-size: 13px; color: #aaa; }
         
         .aqi-card { background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%); grid-column: 1 / -1; }
-        @media (min-width: 768px) { .aqi-card { grid-column: span 2; } } /* AQI chiếm 2 ô trên PC */
+        @media (min-width: 768px) { .aqi-card { grid-column: span 2; } } 
         .aqi-card .value { color: #006064; font-size: 32px;}
         .temp-card .value { color: #ff5722; } 
         .hum-card .value { color: #03a9f4; } 
@@ -32,8 +45,23 @@
 
         .charts-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
         @media (max-width: 768px) { .charts-wrapper { grid-template-columns: 1fr; } }
-        .chart-card { background-color: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .status { text-align: center; margin-top: 20px; font-weight: bold; color: #ff9800; }
+        
+        /* Ép chiều cao biểu đồ để không bị tràn màn hình */
+        .chart-card { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .chart-card canvas { max-height: 220px !important; }
+
+        .status { text-align: center; margin-top: 15px; font-weight: bold; color: #ff9800; }
+        
+        /* Nút cài đặt ứng dụng */
+        .install-container { text-align: center; margin-top: 25px; margin-bottom: 20px; }
+        #installBtn {
+            background-color: var(--accent); color: white; border: none;
+            padding: 12px 24px; font-size: 16px; border-radius: 50px;
+            cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+            display: none; /* Mặc định ẩn, chỉ hiện khi trình duyệt cho phép cài đặt */
+            transition: 0.3s;
+        }
+        #installBtn:hover { background-color: #0056b3; transform: translateY(-2px); }
     </style>
 </head>
 <body>
@@ -96,9 +124,15 @@
 
     <div class="status" id="connection_status">Đang kết nối tới máy chủ Google Firebase...</div>
 
+    <!-- KHU VỰC NÚT TẠO SHORTCUT -->
+    <div class="install-container">
+        <button id="installBtn">📱 Thêm vào màn hình chính</button>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        
         const firebaseConfig = {
             databaseURL: "https://device-streaming-dc17e3c2-default-rtdb.asia-southeast1.firebasedatabase.app/" 
         };
@@ -106,11 +140,12 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const liveRef = ref(db, 'AirQuality');
+        
         function createChartConfig(label, borderColor, bgColor) {
             return {
                 type: 'line', 
                 data: { labels: [], datasets: [{ label: label, borderColor: borderColor, backgroundColor: bgColor, data: [], tension: 0.3, fill: true }] },
-                options: { responsive: true, animation: { duration: 500 } } 
+                options: { responsive: true, maintainAspectRatio: false, animation: { duration: 500 } } 
             };
         }
 
@@ -125,6 +160,7 @@
             if (data) {
                 document.getElementById('connection_status').innerText = "Thiết bị đã được kết nối và đồng bộ theo thời gian thực";
                 document.getElementById('connection_status').style.color = "green";
+                
                 document.getElementById('val_temp').innerText = data.NhietDo.toFixed(1);
                 document.getElementById('val_hum').innerText = data.DoAm.toFixed(1);
                 document.getElementById('val_pm1').innerText = data.PM1_0.toFixed(1);
@@ -142,6 +178,7 @@
                 
                 document.getElementById('val_aqi_text').innerText = "=> " + aqiText;
                 document.querySelector('.aqi-card').style.borderBottom = "5px solid " + aqiColor;
+                
                 const now = new Date();
                 const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
                                    now.getMinutes().toString().padStart(2, '0') + ':' + 
@@ -169,6 +206,33 @@
         }, (error) => {
             document.getElementById('connection_status').innerText = "Lỗi kết nối: " + error.message;
             document.getElementById('connection_status').style.color = "red";
+        });
+
+        // ==========================================
+        // XỬ LÝ NÚT CÀI ĐẶT ỨNG DỤNG (PWA)
+        // ==========================================
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        // Bắt sự kiện khi trình duyệt nhận diện trang web đủ điều kiện cài đặt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Hiện nút cài đặt lên
+            installBtn.style.display = 'inline-block';
+        });
+
+        // Xử lý khi người dùng bấm nút
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt !== null) {
+                deferredPrompt.prompt(); // Bật bảng hỏi cài đặt của trình duyệt
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                    installBtn.style.display = 'none'; // Ẩn nút nếu đã cài
+                }
+                deferredPrompt = null;
+            }
         });
     </script>
 </body>
